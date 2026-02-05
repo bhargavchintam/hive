@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "hive-tools": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "tools",
+        "run",
+        "mcp-server"
+      ],
+      "description": "Hive MCP tools for file operations and data processing"
+    }
+  }
+}

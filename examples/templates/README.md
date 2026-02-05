@@ -36,3 +36,8 @@ uv run python -m exports.my_marketing_agent --input '{"product_description": "..
 | Template | Description |
 |----------|-------------|
 | [marketing_agent](marketing_agent/) | Multi-channel marketing content generator with audience analysis, content generation, and editorial review nodes |
+| [deep_research_agent](deep_research_agent/) | Interactive research agent with rigorous web search and analysis capabilities |
+| [twitter_outreach](twitter_outreach/) | Social media outreach automation for Twitter engagement |
+| [data_processing_agent](data_processing_agent/) | ETL pipeline with data loading, transformation, validation, and saving for CSV/JSON files |
+| [customer_support_agent](customer_support_agent/) | Automated ticket classification, knowledge base search, response generation, and intelligent escalation |
+| [workflow_automation_agent](workflow_automation_agent/) | Multi-step workflow orchestration with conditional branching, error handling, and result aggregation |
