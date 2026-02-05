@@ -9,6 +9,33 @@
 # 4. Verifies everything works
 #
 
+# Early validation: Check if running in Bash (not sh, zsh, etc.)
+if [ -z "$BASH_VERSION" ]; then
+    echo "Error: This script requires Bash to run."
+    echo ""
+    echo "You are currently running: $SHELL"
+    echo ""
+    echo "Please run this script with Bash:"
+    echo "  bash quickstart.sh"
+    echo ""
+    echo "Or make sure you're using a Bash shell:"
+    echo "  bash"
+    echo "  ./quickstart.sh"
+    exit 1
+fi
+
+# Check Bash version (minimum 3.2 required, 4.0+ recommended)
+BASH_MAJOR="${BASH_VERSINFO[0]:-0}"
+BASH_MINOR="${BASH_VERSINFO[1]:-0}"
+
+if [ "$BASH_MAJOR" -lt 3 ] || ([ "$BASH_MAJOR" -eq 3 ] && [ "$BASH_MINOR" -lt 2 ]); then
+    echo "Error: This script requires Bash 3.2 or later."
+    echo "Current version: $BASH_VERSION"
+    echo ""
+    echo "Please upgrade Bash or use a system with Bash 3.2+."
+    exit 1
+fi
+
 set -e
 
 # Detect Bash version for compatibility
