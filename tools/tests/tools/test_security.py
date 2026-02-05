@@ -1,6 +1,5 @@
 """Tests for security.py - get_secure_path() function."""
 
-import os
 from unittest.mock import patch
 
 import pytest
@@ -242,18 +241,18 @@ class TestGetSecurePath:
         symlink_path = session_dir / "link_to_target"
         symlink_path.symlink_to(target_file)
 
-        # Path through symlink should resolve
+        # Path through symlink should resolve to the real target path
         result = get_secure_path("link_to_target", **ids)
 
-        assert result == str(symlink_path)
+        # Result should be the real path of the target (symlink resolved)
+        assert result == str(target_file.resolve())
 
-    def test_symlink_escape_detected_with_realpath(self, ids):
-        """Symlinks pointing outside sandbox can be detected using realpath.
+    def test_symlink_escape_blocked(self, ids):
+        """Symlinks pointing outside sandbox are blocked (CVE fix).
 
-        Note: get_secure_path uses abspath (not realpath), so it validates the
-        lexical path. To fully protect against symlink attacks, callers should
-        verify realpath(result) is still within the sandbox before file I/O.
-        This test documents that pattern.
+        This test verifies the fix for #3693 - Path Traversal via Symlink Attack.
+        The function now uses realpath() to resolve symlinks before validation,
+        preventing attackers from escaping the sandbox via symlinks.
         """
         from aden_tools.tools.file_system_toolkits.security import get_secure_path
 
@@ -267,10 +266,45 @@ class TestGetSecurePath:
         symlink_path = session_dir / "escape_link"
         symlink_path.symlink_to(outside_target)
 
-        # get_secure_path accepts the lexical path (symlink is inside session)
-        result = get_secure_path("escape_link", **ids)
-        assert result == str(symlink_path)
+        # get_secure_path should now BLOCK this symlink escape
+        with pytest.raises(ValueError, match="outside the session sandbox"):
+            get_secure_path("escape_link", **ids)
 
-        # However, realpath reveals the escape - callers should check this
-        real_path = os.path.realpath(result)
-        assert os.path.commonpath([real_path, str(session_dir)]) != str(session_dir)
+    def test_symlink_escape_via_parent_directory(self, ids):
+        """Symlinks to parent directories outside sandbox are blocked."""
+        from aden_tools.tools.file_system_toolkits.security import get_secure_path
+
+        # Create session directory
+        session_dir = self.workspaces_dir / "test-workspace" / "test-agent" / "test-session"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a symlink to a parent directory outside the session
+        parent_dir = self.workspaces_dir / "test-workspace"
+        symlink_path = session_dir / "parent_link"
+        symlink_path.symlink_to(parent_dir)
+
+        # Should be blocked
+        with pytest.raises(ValueError, match="outside the session sandbox"):
+            get_secure_path("parent_link", **ids)
+
+    def test_symlink_chain_escape_blocked(self, ids):
+        """Chained symlinks that eventually escape are blocked."""
+        from aden_tools.tools.file_system_toolkits.security import get_secure_path
+
+        # Create session directory
+        session_dir = self.workspaces_dir / "test-workspace" / "test-agent" / "test-session"
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a chain: link1 -> link2 -> outside_file
+        outside_target = self.workspaces_dir / "outside_file.txt"
+        outside_target.write_text("sensitive data")
+
+        link2 = session_dir / "link2"
+        link2.symlink_to(outside_target)
+
+        link1 = session_dir / "link1"
+        link1.symlink_to(link2)
+
+        # Should be blocked at link1
+        with pytest.raises(ValueError, match="outside the session sandbox"):
+            get_secure_path("link1", **ids)
